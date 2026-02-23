@@ -68,10 +68,8 @@ export default function ThreadPage() {
       } catch {
         // ignore
       }
-      const commentsHaveLatin = fromApi.some(
-        (c) => looksLikeLatin(c.content) || c.replies?.some((r) => looksLikeLatin(r.content))
-      )
-      setComments(fromApi.length > 0 && !commentsHaveLatin ? fromApi : getMockComments(threadId))
+      // Use API comments when we have any, so posted comments persist after refresh
+      setComments(fromApi.length > 0 ? fromApi : getMockComments(threadId))
     } catch (e) {
       const mock = getMockThread(threadId)
       if (mock) {

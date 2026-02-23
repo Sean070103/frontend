@@ -55,10 +55,10 @@ export function CollapsibleComment({
           </button>
         </div>
 
-        {/* Content */}
-        <p className="text-sm text-foreground mb-3 leading-relaxed">
+        {/* Content - div to avoid hydration from invalid nesting if content has block-like text */}
+        <div className="text-sm text-foreground mb-3 leading-relaxed">
           {comment.content}
-        </p>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-3 text-xs">

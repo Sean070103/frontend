@@ -54,6 +54,7 @@ export function apiThreadToThread(t: ApiThread): Thread {
 
 export function apiCommentToComment(c: ApiComment): Comment {
   const author = c.user?.name ?? (c as { author?: string }).author ?? 'Anonymous'
+  const nested = (c as { replies?: ApiComment[] }).replies ?? c.children
   return {
     id: String(c.id),
     author,
@@ -61,7 +62,7 @@ export function apiCommentToComment(c: ApiComment): Comment {
     content: c.body,
     timestamp: formatDate(c.created_at),
     votes: c.votes_count ?? 0,
-    replies: c.children?.length ? c.children.map(apiCommentToComment) : undefined,
+    replies: nested?.length ? nested.map(apiCommentToComment) : undefined,
   }
 }
 
