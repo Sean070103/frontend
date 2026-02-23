@@ -59,25 +59,22 @@ The frontend expects the following from your Laravel API. Typesense is used **on
 | GET | `/api/protocols/:id` | Single protocol |
 | GET | `/api/protocols/:id/threads` | Threads for a protocol. Query: `sort`, `page` |
 | GET | `/api/protocols/:id/reviews` | Reviews for a protocol |
-| POST | `/api/protocols/:id/reviews` | Create review. Body: `{ "rating": 1–5, "feedback": "optional" }` |
-| POST | `/api/protocols/:id/threads` | Create thread. Body: `{ "title", "body" }` |
+| POST | `/api/reviews` | Create review. Body: `{ "protocol_id", "rating", "feedback"?: string }`. Backend should set `user_id` from auth. |
+| POST | `/api/threads` | Create thread. Body: `{ "protocol_id", "title", "body" }`. Backend should set `user_id` from auth. |
 | GET | `/api/threads` | List threads. Query: `search`, `sort`, `protocol_id`, `page` |
 | GET | `/api/threads/:id` | Single thread |
-| POST | `/api/threads/:id/vote` | Vote on thread. Body: `{ "direction": "up" \| "down" }` |
-| GET | `/api/threads/:id/comments` | Comments for thread (flat or nested by `parent_id` / `children`) |
-| POST | `/api/threads/:id/comments` | Create comment. Body: `{ "body", "parent_id"?: number }` |
-| POST | `/api/comments/:id/vote` | Vote on comment. Body: `{ "direction": "up" \| "down" }` |
+| POST | `/api/votes` | Vote on thread or comment. Body: `{ "voteable_id", "voteable_type": "thread" \| "comment", "value": 1 \| -1 }`. Backend sets `user_id`. If Laravel uses morph map, use full model name (e.g. `App\\Models\\Thread`). |
+| GET | `/api/threads/:id/comments` | Comments for thread (flat with `parent_id` or nested `children`) |
+| POST | `/api/threads/:id/comments` | Create comment. URL uses real thread id. Body: `{ "body", "parent_id"?: number }` |
 
-### Search (Typesense via Laravel)
+### Search
 
-If your Laravel app exposes Typesense-backed search:
+The frontend uses the **list** endpoints with a `search` query param (no separate `/api/search/...` routes):
 
-| Method | Path | Purpose |
-|--------|------|--------|
-| GET | `/api/search/protocols` | Query: `q`, `sort`, `page` |
-| GET | `/api/search/threads` | Query: `q`, `sort`, `protocol_id`, `page` |
+- **Protocols:** `GET /api/protocols?search=...&sort=...&page=...`
+- **Threads:** `GET /api/threads?search=...&sort=...&protocol_id=...&page=...`
 
-If these are not implemented, the frontend falls back to listing endpoints with `search` and `sort` query params.
+Your Laravel API can implement search via Typesense (or DB) inside these endpoints when `search` is present.
 
 ### Response shapes (JSON, snake_case)
 

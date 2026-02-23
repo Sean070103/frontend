@@ -131,9 +131,13 @@ export async function createReview(
   protocolId: string | number,
   payload: { rating: number; feedback?: string }
 ): Promise<ApiReview> {
-  return apiFetch<ApiReview>(`/api/protocols/${protocolId}/reviews`, {
+  return apiFetch<ApiReview>('/api/reviews', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      protocol_id: Number(protocolId),
+      rating: payload.rating,
+      feedback: payload.feedback,
+    }),
   })
 }
 
@@ -162,20 +166,31 @@ export async function createThread(
   protocolId: string | number,
   payload: { title: string; body: string }
 ): Promise<ApiThread> {
-  return apiFetch<ApiThread>(`/api/protocols/${protocolId}/threads`, {
+  return apiFetch<ApiThread>('/api/threads', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      protocol_id: Number(protocolId),
+      title: payload.title,
+      body: payload.body,
+    }),
   })
 }
 
+/** Backend: POST /api/votes with voteable_id, voteable_type, value (+1/-1). If your Laravel uses morph map, try 'App\\Models\\Thread'. */
 export async function voteThread(
   threadId: string | number,
   direction: VoteDirection
 ): Promise<{ votes_count: number }> {
-  return apiFetch<{ votes_count: number }>(`/api/threads/${threadId}/vote`, {
+  const value = direction === 'up' ? 1 : -1
+  const res = await apiFetch<{ votes_count?: number }>('/api/votes', {
     method: 'POST',
-    body: JSON.stringify({ direction }),
+    body: JSON.stringify({
+      voteable_id: Number(threadId),
+      voteable_type: 'thread',
+      value,
+    }),
   })
+  return { votes_count: res.votes_count ?? 0 }
 }
 
 // --- Comments ---
@@ -199,27 +214,35 @@ export async function createComment(
   })
 }
 
+/** Backend: POST /api/votes. If your Laravel uses morph map, try voteable_type: 'App\\Models\\Comment'. */
 export async function voteComment(
   commentId: string | number,
   direction: VoteDirection
 ): Promise<{ votes_count: number }> {
-  return apiFetch<{ votes_count: number }>(`/api/comments/${commentId}/vote`, {
+  const value = direction === 'up' ? 1 : -1
+  const res = await apiFetch<{ votes_count?: number }>('/api/votes', {
     method: 'POST',
-    body: JSON.stringify({ direction }),
+    body: JSON.stringify({
+      voteable_id: Number(commentId),
+      voteable_type: 'comment',
+      value,
+    }),
   })
+  return { votes_count: res.votes_count ?? 0 }
 }
 
-// --- Search (Typesense via Laravel: GET /api/search/protocols, /api/search/threads) ---
+// --- Search (use list endpoints with search param to match backend GET /api/protocols?search=... and GET /api/threads?search=...) ---
 
 export async function searchProtocols(params: {
   q: string
   sort?: SortProtocols
   page?: number
 }): Promise<Paginated<ApiProtocol>> {
-  const sp = new URLSearchParams({ q: params.q })
-  if (params.sort) sp.set('sort', params.sort)
-  if (params.page != null) sp.set('page', String(params.page))
-  return apiFetchRaw<Paginated<ApiProtocol>>(`/api/search/protocols?${sp}`)
+  return listProtocols({
+    search: params.q,
+    sort: params.sort,
+    page: params.page,
+  })
 }
 
 export async function searchThreads(params: {
@@ -228,9 +251,10 @@ export async function searchThreads(params: {
   protocol_id?: number
   page?: number
 }): Promise<Paginated<ApiThread>> {
-  const sp = new URLSearchParams({ q: params.q })
-  if (params.sort) sp.set('sort', params.sort)
-  if (params.protocol_id != null) sp.set('protocol_id', String(params.protocol_id))
-  if (params.page != null) sp.set('page', String(params.page))
-  return apiFetchRaw<Paginated<ApiThread>>(`/api/search/threads?${sp}`)
+  return listThreads({
+    search: params.q,
+    sort: params.sort,
+    protocol_id: params.protocol_id,
+    page: params.page,
+  })
 }
