@@ -1,27 +1,29 @@
 'use client'
 
 import { useState } from 'react'
-import { Send } from 'lucide-react'
+import { Send, Loader2 } from 'lucide-react'
 
 interface CommentFormProps {
   onSubmit?: (content: string) => void
   placeholder?: string
   isReply?: boolean
   onCancel?: () => void
+  disabled?: boolean
 }
 
-export function CommentForm({ 
-  onSubmit, 
+export function CommentForm({
+  onSubmit,
   placeholder = 'Share your thoughts...',
   isReply = false,
-  onCancel 
+  onCancel,
+  disabled = false,
 }: CommentFormProps) {
   const [content, setContent] = useState('')
   const [isFocused, setIsFocused] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (content.trim()) {
+    if (content.trim() && !disabled) {
       onSubmit?.(content.trim())
       setContent('')
     }
@@ -45,7 +47,8 @@ export function CommentForm({
             }}
             placeholder={placeholder}
             rows={isFocused ? 3 : 1}
-            className="w-full px-4 py-2 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none"
+            disabled={disabled}
+            className="w-full px-4 py-2 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none disabled:opacity-60 disabled:pointer-events-none"
           />
         </div>
       </div>
@@ -67,11 +70,11 @@ export function CommentForm({
           )}
           <button
             type="submit"
-            disabled={!content.trim()}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-300 ease-out"
+            disabled={!content.trim() || disabled}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-300 ease-out disabled:pointer-events-none"
           >
-            <Send className="w-4 h-4" />
-            Post
+            {disabled ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {disabled ? 'Saving…' : 'Post'}
           </button>
         </div>
       )}

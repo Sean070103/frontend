@@ -14,7 +14,9 @@ import {
   voteThread,
   voteComment,
   createComment,
+  getApiErrorMessage,
 } from '@/lib/api'
+import { toast } from '@/hooks/use-toast'
 import { apiThreadToThread, apiCommentToComment, buildCommentTree } from '@/lib/mappers'
 import type { Thread } from '@/components/thread-card'
 import type { Comment } from '@/components/collapsible-comment'
@@ -33,6 +35,7 @@ export default function ThreadPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [voteCount, setVoteCount] = useState(0)
+  const [commentSubmitLoading, setCommentSubmitLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -88,12 +91,14 @@ export default function ThreadPage() {
 
   const handleVoteThread = async (direction: 'up' | 'down') => {
     if (!thread) return
+    const delta = direction === 'up' ? 1 : -1
+    setVoteCount((prev) => prev + delta)
     try {
       const res = await voteThread(threadId, direction)
-      setVoteCount(res.votes_count ?? voteCount + (direction === 'up' ? 1 : -1))
-    } catch {
-      // optimistic: still update locally if API fails (e.g. already voted)
-      setVoteCount((prev) => prev + (direction === 'up' ? 1 : -1))
+      setVoteCount(res.votes_count ?? voteCount + delta)
+    } catch (err) {
+      setVoteCount((prev) => prev - delta)
+      throw err
     }
   }
 
@@ -109,12 +114,14 @@ export default function ThreadPage() {
     setComments((prev) => updateCommentVote(prev, commentId, delta))
     try {
       await voteComment(commentId, direction)
-    } catch {
+    } catch (err) {
       setComments((prev) => updateCommentVote(prev, commentId, -delta))
+      throw err
     }
   }
 
   const handleCommentSubmit = async (content: string) => {
+    setCommentSubmitLoading(true)
     try {
       const created = await createComment(threadId, { body: content })
       const newComment: Comment = {
@@ -131,7 +138,12 @@ export default function ThreadPage() {
       }
       setComments((prev) => [...prev, newComment])
       setThread((prev) => (prev ? { ...prev, replies: prev.replies + 1 } : null))
-    } catch {
+    } catch (err) {
+      toast({
+        title: 'Could not post comment',
+        description: getApiErrorMessage(err),
+        variant: 'destructive',
+      })
       setComments((prev) => [
         ...prev,
         {
@@ -147,10 +159,13 @@ export default function ThreadPage() {
           votes: 0,
         },
       ])
+    } finally {
+      setCommentSubmitLoading(false)
     }
   }
 
   const handleReply = async (parentId: string, content: string) => {
+    setCommentSubmitLoading(true)
     try {
       const created = await createComment(threadId, {
         body: content,
@@ -176,7 +191,12 @@ export default function ThreadPage() {
         )
       )
       setThread((prev) => (prev ? { ...prev, replies: prev.replies + 1 } : null))
-    } catch {
+    } catch (err) {
+      toast({
+        title: 'Could not post reply',
+        description: getApiErrorMessage(err),
+        variant: 'destructive',
+      })
       setComments((prev) =>
         prev.map((c) =>
           c.id === parentId
@@ -201,6 +221,8 @@ export default function ThreadPage() {
             : c
         )
       )
+    } finally {
+      setCommentSubmitLoading(false)
     }
   }
 
@@ -250,6 +272,7 @@ export default function ThreadPage() {
 
         <div className="flex gap-6">
           <VotingSidebar
+            threadId={threadId}
             votes={voteCount}
             onVote={handleVoteThread}
             onSave={() => {}}
@@ -276,19 +299,22 @@ export default function ThreadPage() {
               <h1 className="text-2xl font-bold text-foreground mb-3">{thread.title}</h1>
               <p className="text-foreground leading-relaxed mb-4">{thread.excerpt}</p>
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-6 text-sm">
                 <StarRating rating={thread.rating} size="sm" />
-                <span className="flex items-center gap-1">
-                  <MessageSquare className="w-4 h-4" />
-                  {thread.replies}
+                <span className="flex items-center gap-2 text-muted-foreground" title="Comments">
+                  <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                  <span className="tabular-nums font-medium text-foreground">{thread.replies}</span>
+                  <span>comments</span>
                 </span>
-                <span className="flex items-center gap-1">
-                  <Eye className="w-4 h-4" />
-                  {thread.views}
+                <span className="flex items-center gap-2 text-muted-foreground" title="Views">
+                  <Eye className="w-4 h-4 flex-shrink-0" />
+                  <span className="tabular-nums font-medium text-foreground">{thread.views}</span>
+                  <span>views</span>
                 </span>
-                <span className="flex items-center gap-1">
-                  <Heart className="w-4 h-4" />
-                  {voteCount}
+                <span className="flex items-center gap-2 text-muted-foreground" title="Votes">
+                  <Heart className="w-4 h-4 flex-shrink-0" />
+                  <span className="tabular-nums font-medium text-foreground">{voteCount}</span>
+                  <span>votes</span>
                 </span>
               </div>
             </article>
@@ -299,6 +325,7 @@ export default function ThreadPage() {
               onCommentSubmit={handleCommentSubmit}
               onReply={handleReply}
               onVoteComment={handleVoteComment}
+              submitLoading={commentSubmitLoading}
             />
           </div>
         </div>

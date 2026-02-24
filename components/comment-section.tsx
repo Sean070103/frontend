@@ -12,6 +12,8 @@ interface CommentSectionProps {
   onVoteComment?: (commentId: string, direction: 'up' | 'down') => void
   loading?: boolean
   totalCount?: number
+  submitLoading?: boolean
+  voteLoadingId?: string | null
 }
 
 export function CommentSection({
@@ -21,6 +23,8 @@ export function CommentSection({
   onVoteComment,
   loading = false,
   totalCount,
+  submitLoading = false,
+  voteLoadingId = null,
 }: CommentSectionProps) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState('')
@@ -63,26 +67,28 @@ export function CommentSection({
   return (
     <div className="space-y-6">
       {/* Header with Sort */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-foreground">
-          Discussion {totalCount ? `(${totalCount})` : ''}
+          Discussion {totalCount != null ? <span className="text-muted-foreground font-normal">({totalCount})</span> : ''}
         </h2>
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as any)}
-          className="px-3 py-2 rounded-lg bg-card border border-border text-sm text-foreground focus-ring cursor-pointer"
+          className="px-3 py-2 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+          aria-label="Sort comments"
         >
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
-          <option value="top">Top Comments</option>
+          <option value="top">Top comments</option>
         </select>
       </div>
 
       {/* New Comment Form */}
-      <div className="p-4 rounded-lg bg-muted/30 border border-border">
+      <div className="p-4 rounded-xl bg-muted/30 border border-border">
         <CommentForm
           onSubmit={handleCommentSubmit}
           placeholder="Share your insights and experiences..."
+          disabled={submitLoading}
         />
       </div>
 
@@ -95,6 +101,7 @@ export function CommentSection({
               comment={comment}
               onReply={() => setReplyingTo(comment.id)}
               onVote={onVoteComment}
+              voteLoadingId={voteLoadingId}
             />
           ))}
         </div>

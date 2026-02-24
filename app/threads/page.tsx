@@ -69,10 +69,11 @@ export default function ThreadsPage() {
       setThreads((prev) =>
         prev.map((t) => (t.id === thread.id ? { ...t, votes: newCount } : t))
       )
-    } catch {
+    } catch (err) {
       setThreads((prev) =>
         prev.map((t) => (t.id === thread.id ? { ...t, votes: t.votes - delta } : t))
       )
+      throw err
     }
   }
 

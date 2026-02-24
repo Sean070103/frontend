@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { enUS } from 'date-fns/locale'
-import { MessageSquare, Eye, ChevronUp, ChevronDown } from 'lucide-react'
+import { MessageSquare, Eye, Loader2 } from 'lucide-react'
 import { StarRating } from './star-rating'
+import { voteStorage } from '@/lib/vote-storage'
+import { toast } from '@/hooks/use-toast'
+import { getApiErrorMessage } from '@/lib/api'
 
 export interface Thread {
   id: string
@@ -23,7 +26,7 @@ export interface Thread {
 interface ThreadCardProps {
   thread: Thread
   onClick?: () => void
-  onVote?: (threadId: string, direction: 'up' | 'down') => void
+  onVote?: (threadId: string, direction: 'up' | 'down') => void | Promise<void>
 }
 
 function formatTimeAgo(iso: string): string {
@@ -39,12 +42,33 @@ function formatTimeAgo(iso: string): string {
 export function ThreadCard({ thread, onClick, onVote }: ThreadCardProps) {
   const timeAgo = formatTimeAgo(thread.timestamp)
   const [voted, setVoted] = useState<'up' | 'down' | null>(null)
+  const [voting, setVoting] = useState(false)
 
-  const handleVote = (e: React.MouseEvent, direction: 'up' | 'down') => {
+  useEffect(() => {
+    const stored = voteStorage.getThreadVote(thread.id)
+    if (stored) setVoted(stored)
+  }, [thread.id])
+
+  const handleVote = async (e: React.MouseEvent, direction: 'up' | 'down') => {
     e.stopPropagation()
-    const next = voted === direction ? null : direction
-    setVoted(next)
-    if (next) onVote?.(thread.id, next)
+    if (voted === direction || voting) return
+    setVoting(true)
+    try {
+      const result = onVote?.(thread.id, direction)
+      if (result && typeof (result as Promise<unknown>).then === 'function') {
+        await (result as Promise<void>)
+      }
+      setVoted(direction)
+      voteStorage.setThreadVote(thread.id, direction)
+    } catch (err) {
+      toast({
+        title: 'Vote failed',
+        description: getApiErrorMessage(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setVoting(false)
+    }
   }
 
   return (
@@ -88,41 +112,36 @@ export function ThreadCard({ thread, onClick, onVote }: ThreadCardProps) {
                 {thread.views}
               </span>
               {onVote && (
-                <div
-                  className="flex items-center gap-1 rounded-lg bg-muted/50 p-1"
-                  onClick={(e) => e.stopPropagation()}
-                  role="group"
-                  aria-label="Vote"
-                >
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
-                    title="Upvote — this was helpful"
                     onClick={(e) => handleVote(e, 'up')}
-                    className={`min-w-[2rem] min-h-[2rem] flex items-center justify-center rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                    disabled={voting}
+                    title={voted === 'up' ? 'You marked helpful' : 'Helpful'}
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none ${
                       voted === 'up'
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        ? 'bg-primary text-primary-foreground cursor-default'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
-                    aria-label="Upvote — this was helpful"
+                    aria-label={voted === 'up' ? 'You marked helpful' : 'Helpful'}
                   >
-                    <ChevronUp className="w-4 h-4" strokeWidth={2.5} />
+                    {voting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Vote</span>}
                   </button>
-                  <span className="min-w-[1.75rem] text-center text-sm font-medium text-foreground tabular-nums" aria-label="Vote count">
-                    {thread.votes}
-                  </span>
                   <button
                     type="button"
-                    title="Downvote — not helpful"
                     onClick={(e) => handleVote(e, 'down')}
-                    className={`min-w-[2rem] min-h-[2rem] flex items-center justify-center rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                    disabled={voting}
+                    title={voted === 'down' ? 'You marked not helpful' : 'Not helpful'}
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none ${
                       voted === 'down'
-                        ? 'bg-destructive/90 text-destructive-foreground shadow-sm'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        ? 'bg-destructive/90 text-destructive-foreground cursor-default'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
-                    aria-label="Downvote — not helpful"
+                    aria-label={voted === 'down' ? 'You marked not helpful' : 'Not helpful'}
                   >
-                    <ChevronDown className="w-4 h-4" strokeWidth={2.5} />
+                    <span>Not helpful</span>
                   </button>
+                  <span className="ml-0.5 text-sm font-medium tabular-nums text-foreground" aria-label="Vote count">{thread.votes}</span>
                 </div>
               )}
               {!onVote && (

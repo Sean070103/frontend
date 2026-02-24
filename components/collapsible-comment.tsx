@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronDown, ChevronUp, Reply, MoreHorizontal } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ChevronDown, Reply, MoreHorizontal, Loader2 } from 'lucide-react'
+import { voteStorage } from '@/lib/vote-storage'
+import { toast } from '@/hooks/use-toast'
+import { getApiErrorMessage } from '@/lib/api'
 
 export interface Comment {
   id: string
@@ -17,7 +20,8 @@ interface CollapsibleCommentProps {
   comment: Comment
   level?: number
   onReply?: (parentId: string) => void
-  onVote?: (commentId: string, direction: 'up' | 'down') => void
+  onVote?: (commentId: string, direction: 'up' | 'down') => void | Promise<void>
+  voteLoadingId?: string | null
 }
 
 export function CollapsibleComment({
@@ -25,16 +29,45 @@ export function CollapsibleComment({
   level = 0,
   onReply,
   onVote,
+  voteLoadingId = null,
 }: CollapsibleCommentProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [voted, setVoted] = useState<'up' | 'down' | null>(null)
+  const [voting, setVoting] = useState(false)
   const hasReplies = comment.replies && comment.replies.length > 0
   const maxLevelDisplay = level < 3
+  const voteLoading = voting || voteLoadingId === comment.id
+
+  useEffect(() => {
+    const stored = voteStorage.getCommentVote(comment.id)
+    if (stored) setVoted(stored)
+  }, [comment.id])
+
+  const handleVote = async (direction: 'up' | 'down') => {
+    if (voted === direction || voting) return
+    setVoting(true)
+    try {
+      const result = onVote?.(comment.id, direction)
+      if (result && typeof (result as Promise<unknown>).then === 'function') {
+        await (result as Promise<void>)
+      }
+      setVoted(direction)
+      voteStorage.setCommentVote(comment.id, direction)
+    } catch (err) {
+      toast({
+        title: 'Vote failed',
+        description: getApiErrorMessage(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setVoting(false)
+    }
+  }
 
   return (
     <div className={`space-y-2 ${level > 0 ? 'ml-4 sm:ml-6' : ''}`}>
       {/* Comment Container */}
-      <div className="p-3 rounded-lg bg-card border border-border/50 hover:border-border transition-colors">
+      <div className="p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors">
         {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -63,57 +96,52 @@ export function CollapsibleComment({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
           {onVote && (
-            <div className="flex items-center gap-0.5 rounded-md bg-muted/50 p-0.5">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                title="Upvote — helpful"
-                onClick={() => {
-                  const next = voted === 'up' ? null : 'up'
-                  setVoted(next)
-                  if (next) onVote(comment.id, next)
-                }}
-                className={`min-w-[1.75rem] min-h-[1.75rem] flex items-center justify-center rounded transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                disabled={voteLoading}
+                onClick={() => handleVote('up')}
+                title={voted === 'up' ? 'You marked helpful' : 'Helpful'}
+                className={`min-w-[1.75rem] min-h-[1.75rem] flex items-center justify-center rounded-full text-[10px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none ${
                   voted === 'up'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground cursor-default'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
-                aria-label="Upvote — helpful"
+                aria-label={voted === 'up' ? 'You marked helpful' : 'Helpful'}
               >
-                <ChevronUp className="w-4 h-4" strokeWidth={2.5} />
+                {voteLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '↑'}
               </button>
-              <span className="min-w-[1.5rem] text-center text-foreground font-medium tabular-nums text-xs" aria-label="Vote count">
-                {comment.votes}
-              </span>
               <button
                 type="button"
-                title="Downvote — not helpful"
-                onClick={() => {
-                  const next = voted === 'down' ? null : 'down'
-                  setVoted(next)
-                  if (next) onVote(comment.id, next)
-                }}
-                className={`min-w-[1.75rem] min-h-[1.75rem] flex items-center justify-center rounded transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                disabled={voteLoading}
+                onClick={() => handleVote('down')}
+                title={voted === 'down' ? 'You marked not helpful' : 'Not helpful'}
+                className={`min-w-[1.75rem] min-h-[1.75rem] flex items-center justify-center rounded-full text-[10px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none ${
                   voted === 'down'
-                    ? 'bg-destructive/90 text-destructive-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'bg-destructive/90 text-destructive-foreground cursor-default'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
-                aria-label="Downvote — not helpful"
+                aria-label={voted === 'down' ? 'You marked not helpful' : 'Not helpful'}
               >
-                <ChevronDown className="w-4 h-4" strokeWidth={2.5} />
+                {voteLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '↓'}
               </button>
+              <span className="tabular-nums text-sm font-semibold text-foreground min-w-[1.25rem] text-center" aria-label="Vote count">{comment.votes}</span>
+              <span className="text-muted-foreground text-[10px]">votes</span>
             </div>
           )}
           {!onVote && (
-            <span className="text-muted-foreground">{comment.votes} votes</span>
+            <span className="text-muted-foreground tabular-nums font-medium">{comment.votes} votes</span>
           )}
+
+          <span className="h-4 w-px bg-border hidden sm:block" aria-hidden />
 
           <button
             type="button"
             title="Reply to this comment"
             onClick={() => onReply?.(comment.id)}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
             aria-label="Reply to this comment"
           >
             <Reply className="w-3.5 h-3.5" />
@@ -123,10 +151,10 @@ export function CollapsibleComment({
           {hasReplies && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-primary hover:bg-primary/10 transition-all duration-300 ease-out"
+              className="ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-primary hover:bg-primary/10 transition-all duration-300 ease-out"
             >
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-              <span>{comment.replies?.length} {comment.replies?.length === 1 ? 'reply' : 'replies'}</span>
+              <span className="tabular-nums">{comment.replies?.length} {comment.replies?.length === 1 ? 'reply' : 'replies'}</span>
             </button>
           )}
         </div>
@@ -142,6 +170,7 @@ export function CollapsibleComment({
               level={level + 1}
               onReply={onReply}
               onVote={onVote}
+              voteLoadingId={voteLoadingId}
             />
           ))}
         </div>
@@ -149,7 +178,7 @@ export function CollapsibleComment({
 
       {/* Collapsed Indicator */}
       {hasReplies && !isExpanded && (
-        <div className="ml-4 sm:ml-6 text-xs text-muted-foreground p-2 rounded-lg bg-muted/30">
+        <div className="ml-4 sm:ml-6 text-xs text-muted-foreground px-3 py-2 rounded-xl bg-muted/30">
           {comment.replies?.length} {comment.replies?.length === 1 ? 'reply' : 'replies'} hidden
         </div>
       )}
