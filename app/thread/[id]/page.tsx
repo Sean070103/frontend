@@ -95,7 +95,9 @@ export default function ThreadPage() {
     setVoteCount((prev) => prev + delta)
     try {
       const res = await voteThread(threadId, direction)
-      setVoteCount(res.votes_count ?? voteCount + delta)
+      setVoteCount((prev) =>
+        typeof res.votes_count === 'number' ? res.votes_count : prev
+      )
     } catch (err) {
       setVoteCount((prev) => prev - delta)
       throw err
