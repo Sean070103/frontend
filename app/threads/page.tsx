@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { Navbar } from '@/components/navbar'
 import { ThreadList } from '@/components/thread-list'
-import { listThreads, searchThreads } from '@/lib/api'
+import { listThreads, searchThreads, voteThread } from '@/lib/api'
 import { apiThreadToThread } from '@/lib/mappers'
-import { MOCK_THREADS } from '@/lib/mock-data'
+import { MOCK_THREADS, getThread as getMockThread } from '@/lib/mock-data'
 import { looksLikeLatin } from '@/lib/latin'
 import type { SortThreads } from '@/lib/api-types'
 
@@ -36,9 +36,15 @@ export default function ThreadsPage() {
         ? await searchThreads({ q: search.trim(), sort })
         : await listThreads({ sort })
       const data = (res as { data?: unknown[] }).data ?? []
-      const list = Array.isArray(data) ? data.map((t) => apiThreadToThread(t as import('@/lib/api-types').ApiThread)) : []
-      const hasLatin = list.some((t) => looksLikeLatin(t.title) || looksLikeLatin(t.excerpt))
-      setThreads(list.length > 0 && !hasLatin ? list : MOCK_THREADS)
+      const rawList = Array.isArray(data) ? data.map((t) => apiThreadToThread(t as import('@/lib/api-types').ApiThread)) : []
+      const list = rawList.length > 0
+        ? rawList.map((t) =>
+            looksLikeLatin(t.title) || looksLikeLatin(t.excerpt)
+              ? (getMockThread(t.id) ?? t)
+              : t
+          )
+        : MOCK_THREADS
+      setThreads(list)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load threads')
       setThreads(MOCK_THREADS)
@@ -51,6 +57,24 @@ export default function ThreadsPage() {
     const t = setTimeout(load, search ? 300 : 0)
     return () => clearTimeout(t)
   }, [load, search])
+
+  const handleVote = async (thread: ReturnType<typeof apiThreadToThread>, direction: 'up' | 'down') => {
+    const delta = direction === 'up' ? 1 : -1
+    setThreads((prev) =>
+      prev.map((t) => (t.id === thread.id ? { ...t, votes: t.votes + delta } : t))
+    )
+    try {
+      const res = await voteThread(thread.id, direction)
+      const newCount = res.votes_count ?? thread.votes + delta
+      setThreads((prev) =>
+        prev.map((t) => (t.id === thread.id ? { ...t, votes: newCount } : t))
+      )
+    } catch {
+      setThreads((prev) =>
+        prev.map((t) => (t.id === thread.id ? { ...t, votes: t.votes - delta } : t))
+      )
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,6 +101,7 @@ export default function ThreadsPage() {
           threads={threads}
           loading={loading}
           onThreadClick={(t) => router.push(`/thread/${t.id}`)}
+          onVote={handleVote}
         />
         {!loading && threads.length > 0 && (
           <div className="flex gap-2 mt-4 flex-wrap">

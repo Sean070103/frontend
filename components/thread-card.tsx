@@ -1,8 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { enUS } from 'date-fns/locale'
-import { MessageSquare, Eye, Heart } from 'lucide-react'
+import { MessageSquare, Eye, ChevronUp, ChevronDown } from 'lucide-react'
 import { StarRating } from './star-rating'
 
 export interface Thread {
@@ -22,6 +23,7 @@ export interface Thread {
 interface ThreadCardProps {
   thread: Thread
   onClick?: () => void
+  onVote?: (threadId: string, direction: 'up' | 'down') => void
 }
 
 function formatTimeAgo(iso: string): string {
@@ -34,8 +36,16 @@ function formatTimeAgo(iso: string): string {
   }
 }
 
-export function ThreadCard({ thread, onClick }: ThreadCardProps) {
+export function ThreadCard({ thread, onClick, onVote }: ThreadCardProps) {
   const timeAgo = formatTimeAgo(thread.timestamp)
+  const [voted, setVoted] = useState<'up' | 'down' | null>(null)
+
+  const handleVote = (e: React.MouseEvent, direction: 'up' | 'down') => {
+    e.stopPropagation()
+    const next = voted === direction ? null : direction
+    setVoted(next)
+    if (next) onVote?.(thread.id, next)
+  }
 
   return (
     <div
@@ -77,10 +87,47 @@ export function ThreadCard({ thread, onClick }: ThreadCardProps) {
                 <Eye className="w-4 h-4" />
                 {thread.views}
               </span>
-              <span className="flex items-center gap-1.5">
-                <Heart className="w-4 h-4" />
-                {thread.votes}
-              </span>
+              {onVote && (
+                <div
+                  className="flex items-center gap-1 rounded-lg bg-muted/50 p-1"
+                  onClick={(e) => e.stopPropagation()}
+                  role="group"
+                  aria-label="Vote"
+                >
+                  <button
+                    type="button"
+                    title="Upvote — this was helpful"
+                    onClick={(e) => handleVote(e, 'up')}
+                    className={`min-w-[2rem] min-h-[2rem] flex items-center justify-center rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                      voted === 'up'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                    aria-label="Upvote — this was helpful"
+                  >
+                    <ChevronUp className="w-4 h-4" strokeWidth={2.5} />
+                  </button>
+                  <span className="min-w-[1.75rem] text-center text-sm font-medium text-foreground tabular-nums" aria-label="Vote count">
+                    {thread.votes}
+                  </span>
+                  <button
+                    type="button"
+                    title="Downvote — not helpful"
+                    onClick={(e) => handleVote(e, 'down')}
+                    className={`min-w-[2rem] min-h-[2rem] flex items-center justify-center rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                      voted === 'down'
+                        ? 'bg-destructive/90 text-destructive-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                    aria-label="Downvote — not helpful"
+                  >
+                    <ChevronDown className="w-4 h-4" strokeWidth={2.5} />
+                  </button>
+                </div>
+              )}
+              {!onVote && (
+                <span className="flex items-center gap-1.5">{thread.votes} votes</span>
+              )}
             </div>
           </div>
         </div>

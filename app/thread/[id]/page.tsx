@@ -97,25 +97,20 @@ export default function ThreadPage() {
     }
   }
 
+  const updateCommentVote = (list: Comment[], id: string, delta: number): Comment[] =>
+    list.map((c) =>
+      c.id === id
+        ? { ...c, votes: c.votes + delta }
+        : { ...c, replies: c.replies ? updateCommentVote(c.replies, id, delta) : c.replies }
+    )
+
   const handleVoteComment = async (commentId: string, direction: 'up' | 'down') => {
+    const delta = direction === 'up' ? 1 : -1
+    setComments((prev) => updateCommentVote(prev, commentId, delta))
     try {
       await voteComment(commentId, direction)
-      setComments((prev) =>
-        prev.map((c) =>
-          c.id === commentId
-            ? { ...c, votes: c.votes + (direction === 'up' ? 1 : -1) }
-            : {
-                ...c,
-                replies: c.replies?.map((r) =>
-                  r.id === commentId
-                    ? { ...r, votes: r.votes + (direction === 'up' ? 1 : -1) }
-                    : r
-                ),
-              }
-        )
-      )
     } catch {
-      // ignore
+      setComments((prev) => updateCommentVote(prev, commentId, -delta))
     }
   }
 
@@ -135,6 +130,7 @@ export default function ThreadPage() {
         votes: created.votes_count ?? 0,
       }
       setComments((prev) => [...prev, newComment])
+      setThread((prev) => (prev ? { ...prev, replies: prev.replies + 1 } : null))
     } catch {
       setComments((prev) => [
         ...prev,
@@ -179,6 +175,7 @@ export default function ThreadPage() {
             : c
         )
       )
+      setThread((prev) => (prev ? { ...prev, replies: prev.replies + 1 } : null))
     } catch {
       setComments((prev) =>
         prev.map((c) =>
@@ -301,6 +298,7 @@ export default function ThreadPage() {
               totalCount={totalComments}
               onCommentSubmit={handleCommentSubmit}
               onReply={handleReply}
+              onVoteComment={handleVoteComment}
             />
           </div>
         </div>

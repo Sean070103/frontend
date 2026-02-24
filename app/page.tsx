@@ -8,7 +8,7 @@ import { Navbar } from '@/components/navbar'
 import { ThreadList } from '@/components/thread-list'
 import { listThreads } from '@/lib/api'
 import { apiThreadToThread } from '@/lib/mappers'
-import { MOCK_THREADS } from '@/lib/mock-data'
+import { MOCK_THREADS, getThread as getMockThread } from '@/lib/mock-data'
 import { looksLikeLatin } from '@/lib/latin'
 
 export default function Home() {
@@ -34,9 +34,15 @@ export default function Home() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Use English threads when API returns none, fails, or Latin content
-  const hasLatin = threads.some((t) => looksLikeLatin(t.title) || looksLikeLatin(t.excerpt))
-  const displayThreads = threads.length > 0 && !hasLatin ? threads : MOCK_THREADS
+  // Replace any thread with Latin/non-English content with English mock
+  const displayThreads =
+    threads.length > 0
+      ? threads.map((t) =>
+          looksLikeLatin(t.title) || looksLikeLatin(t.excerpt)
+            ? (getMockThread(t.id) ?? t)
+            : t
+        )
+      : MOCK_THREADS
 
   return (
     <div className="min-h-screen bg-background">

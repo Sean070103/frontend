@@ -9,6 +9,7 @@ interface CommentSectionProps {
   comments: Comment[]
   onCommentSubmit?: (content: string) => void
   onReply?: (parentId: string, content: string) => void
+  onVoteComment?: (commentId: string, direction: 'up' | 'down') => void
   loading?: boolean
   totalCount?: number
 }
@@ -17,8 +18,9 @@ export function CommentSection({
   comments,
   onCommentSubmit,
   onReply,
+  onVoteComment,
   loading = false,
-  totalCount
+  totalCount,
 }: CommentSectionProps) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState('')
@@ -92,6 +94,7 @@ export function CommentSection({
               key={comment.id}
               comment={comment}
               onReply={() => setReplyingTo(comment.id)}
+              onVote={onVoteComment}
             />
           ))}
         </div>

@@ -11,9 +11,10 @@ interface ThreadListProps {
   threads: Thread[]
   loading?: boolean
   onThreadClick?: (thread: Thread) => void
+  onVote?: (thread: Thread, direction: 'up' | 'down') => void
 }
 
-export function ThreadList({ threads, loading = false, onThreadClick }: ThreadListProps) {
+export function ThreadList({ threads, loading = false, onThreadClick, onVote }: ThreadListProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('newest')
 
@@ -82,6 +83,7 @@ export function ThreadList({ threads, loading = false, onThreadClick }: ThreadLi
               key={thread.id}
               thread={thread}
               onClick={() => onThreadClick?.(thread)}
+              onVote={onVote ? (id, dir) => onVote(thread, dir) : undefined}
             />
           ))}
         </div>

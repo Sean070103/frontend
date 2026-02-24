@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Heart, Reply, MoreHorizontal } from 'lucide-react'
+import { ChevronDown, ChevronUp, Reply, MoreHorizontal } from 'lucide-react'
 
 export interface Comment {
   id: string
@@ -17,17 +17,19 @@ interface CollapsibleCommentProps {
   comment: Comment
   level?: number
   onReply?: (parentId: string) => void
+  onVote?: (commentId: string, direction: 'up' | 'down') => void
 }
 
-export function CollapsibleComment({ 
-  comment, 
+export function CollapsibleComment({
+  comment,
   level = 0,
-  onReply 
+  onReply,
+  onVote,
 }: CollapsibleCommentProps) {
   const [isExpanded, setIsExpanded] = useState(true)
-  const [liked, setLiked] = useState(false)
+  const [voted, setVoted] = useState<'up' | 'down' | null>(null)
   const hasReplies = comment.replies && comment.replies.length > 0
-  const maxLevelDisplay = level < 3 // Only show replies up to 3 levels deep
+  const maxLevelDisplay = level < 3
 
   return (
     <div className={`space-y-2 ${level > 0 ? 'ml-4 sm:ml-6' : ''}`}>
@@ -62,17 +64,50 @@ export function CollapsibleComment({
 
         {/* Actions */}
         <div className="flex items-center gap-3 text-xs">
-          <button
-            onClick={() => setLiked(!liked)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all duration-300 ease-out ${
-              liked
-                ? 'bg-accent text-accent-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            <Heart className={`w-3.5 h-3.5 ${liked ? 'fill-current' : ''}`} />
-            <span>{comment.votes + (liked ? 1 : 0)}</span>
-          </button>
+          {onVote && (
+            <div className="flex items-center gap-0.5 rounded-md bg-muted/50 p-0.5">
+              <button
+                type="button"
+                title="Upvote — helpful"
+                onClick={() => {
+                  const next = voted === 'up' ? null : 'up'
+                  setVoted(next)
+                  if (next) onVote(comment.id, next)
+                }}
+                className={`min-w-[1.75rem] min-h-[1.75rem] flex items-center justify-center rounded transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                  voted === 'up'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+                aria-label="Upvote — helpful"
+              >
+                <ChevronUp className="w-4 h-4" strokeWidth={2.5} />
+              </button>
+              <span className="min-w-[1.5rem] text-center text-foreground font-medium tabular-nums text-xs" aria-label="Vote count">
+                {comment.votes}
+              </span>
+              <button
+                type="button"
+                title="Downvote — not helpful"
+                onClick={() => {
+                  const next = voted === 'down' ? null : 'down'
+                  setVoted(next)
+                  if (next) onVote(comment.id, next)
+                }}
+                className={`min-w-[1.75rem] min-h-[1.75rem] flex items-center justify-center rounded transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                  voted === 'down'
+                    ? 'bg-destructive/90 text-destructive-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+                aria-label="Downvote — not helpful"
+              >
+                <ChevronDown className="w-4 h-4" strokeWidth={2.5} />
+              </button>
+            </div>
+          )}
+          {!onVote && (
+            <span className="text-muted-foreground">{comment.votes} votes</span>
+          )}
 
           <button
             onClick={() => onReply?.(comment.id)}
@@ -103,6 +138,7 @@ export function CollapsibleComment({
               comment={reply}
               level={level + 1}
               onReply={onReply}
+              onVote={onVote}
             />
           ))}
         </div>
