@@ -110,8 +110,11 @@ export function CollapsibleComment({
           )}
 
           <button
+            type="button"
+            title="Reply to this comment"
             onClick={() => onReply?.(comment.id)}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-300 ease-out"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            aria-label="Reply to this comment"
           >
             <Reply className="w-3.5 h-3.5" />
             <span>Reply</span>
