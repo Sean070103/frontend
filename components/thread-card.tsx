@@ -40,9 +40,21 @@ function formatTimeAgo(iso: string): string {
 }
 
 export function ThreadCard({ thread, onClick, onVote }: ThreadCardProps) {
-  const timeAgo = formatTimeAgo(thread.timestamp)
+  const [timeAgo, setTimeAgo] = useState<string>(() => {
+    try {
+      const d = new Date(thread.timestamp)
+      if (Number.isNaN(d.getTime())) return thread.timestamp
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    } catch {
+      return thread.timestamp
+    }
+  })
   const [voted, setVoted] = useState<'up' | 'down' | null>(null)
   const [voting, setVoting] = useState(false)
+
+  useEffect(() => {
+    setTimeAgo(formatTimeAgo(thread.timestamp))
+  }, [thread.timestamp])
 
   useEffect(() => {
     const stored = voteStorage.getThreadVote(thread.id)
@@ -88,7 +100,7 @@ export function ThreadCard({ thread, onClick, onVote }: ThreadCardProps) {
           <div className="flex items-start justify-between gap-2 mb-1">
             <div>
               <p className="text-sm font-medium text-foreground">{thread.author}</p>
-              <p className="text-xs text-muted-foreground">{timeAgo}</p>
+              <p className="text-xs text-muted-foreground" suppressHydrationWarning>{timeAgo}</p>
             </div>
             <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground whitespace-nowrap">
               {thread.category}

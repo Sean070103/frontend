@@ -36,14 +36,29 @@ export default function ThreadsPage() {
         ? await searchThreads({ q: search.trim(), sort })
         : await listThreads({ sort })
       const data = (res as { data?: unknown[] }).data ?? []
-      const rawList = Array.isArray(data) ? data.map((t) => apiThreadToThread(t as import('@/lib/api-types').ApiThread)) : []
-      const list = rawList.length > 0
-        ? rawList.map((t) =>
-            looksLikeLatin(t.title) || looksLikeLatin(t.excerpt)
-              ? (getMockThread(t.id) ?? t)
-              : t
-          )
-        : MOCK_THREADS
+      const rawList = Array.isArray(data)
+        ? data.map((t) => apiThreadToThread(t as import('@/lib/api-types').ApiThread))
+        : []
+
+      const list =
+        rawList.length > 0
+          ? rawList.map((t, index) => {
+              if (looksLikeLatin(t.title) || looksLikeLatin(t.excerpt)) {
+                const fallback =
+                  getMockThread(t.id) ?? MOCK_THREADS[index % MOCK_THREADS.length]
+
+                return {
+                  ...t,
+                  title: fallback.title,
+                  excerpt: fallback.excerpt,
+                  author: fallback.author,
+                  avatar: fallback.avatar,
+                  category: fallback.category,
+                }
+              }
+              return t
+            })
+          : MOCK_THREADS
       setThreads(list)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load threads')

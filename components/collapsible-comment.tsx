@@ -80,7 +80,7 @@ export function CollapsibleComment({
               <p className="text-sm font-medium text-foreground truncate">
                 {comment.author}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground" suppressHydrationWarning>
                 {comment.timestamp}
               </p>
             </div>

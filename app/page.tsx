@@ -34,14 +34,26 @@ export default function Home() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Replace any thread with Latin/non-English content with English mock
+  // Replace any thread with lorem/Latin-looking content with English mock data
   const displayThreads =
     threads.length > 0
-      ? threads.map((t) =>
-          looksLikeLatin(t.title) || looksLikeLatin(t.excerpt)
-            ? (getMockThread(t.id) ?? t)
-            : t
-        )
+      ? threads.map((t, index) => {
+          if (looksLikeLatin(t.title) || looksLikeLatin(t.excerpt)) {
+            const fallback =
+              getMockThread(t.id) ?? MOCK_THREADS[index % MOCK_THREADS.length]
+
+            // Keep the real thread id and numeric stats, but use English text/avatar/category
+            return {
+              ...t,
+              title: fallback.title,
+              excerpt: fallback.excerpt,
+              author: fallback.author,
+              avatar: fallback.avatar,
+              category: fallback.category,
+            }
+          }
+          return t
+        })
       : MOCK_THREADS
 
   return (

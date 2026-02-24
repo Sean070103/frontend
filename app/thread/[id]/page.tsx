@@ -291,7 +291,7 @@ export default function ThreadPage() {
                 />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground">{thread.author}</p>
-                  <p className="text-xs text-muted-foreground">{thread.timestamp}</p>
+                  <p className="text-xs text-muted-foreground" suppressHydrationWarning>{thread.timestamp}</p>
                   <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
                     {thread.category}
                   </span>
