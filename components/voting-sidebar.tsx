@@ -61,23 +61,29 @@ export function VotingSidebar({
   }
 
   const btnBase =
-    'min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
+    'min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
+
+  const voteBtnClass = (isUp: boolean) =>
+    `flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg min-h-[2.5rem] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none ${
+      (isUp && voted === 'up') || (!isUp && voted === 'down')
+        ? isUp
+          ? 'bg-primary text-primary-foreground cursor-default'
+          : 'bg-destructive/90 text-destructive-foreground cursor-default'
+        : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+    }`
 
   return (
-    <div className="sticky top-20 flex flex-col items-center gap-5 py-5 px-4 rounded-xl border border-border bg-card shadow-sm backdrop-blur-sm min-w-[6rem]">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Vote</p>
-      <div className="flex flex-col items-center gap-2 w-full">
-        <div className="flex gap-2 w-full">
+    <>
+      {/* Mobile: horizontal bar, full width */}
+      <div className="w-full lg:hidden flex items-center gap-3 py-3 px-4 rounded-xl border border-border bg-card shadow-sm">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground shrink-0">Vote</span>
+        <div className="flex gap-2 flex-1 min-w-0">
           <button
             type="button"
             onClick={() => handleVote('up')}
             disabled={disabled || voting}
             title={voted === 'up' ? 'You marked helpful' : 'Helpful'}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 rounded-full min-h-[2.5rem] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none ${
-              voted === 'up'
-                ? 'bg-primary text-primary-foreground cursor-default'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
+            className={voteBtnClass(true)}
             aria-label={voted === 'up' ? 'You marked helpful' : 'Helpful'}
           >
             {voting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="text-[10px] font-semibold leading-none">↑</span>}
@@ -87,49 +93,66 @@ export function VotingSidebar({
             onClick={() => handleVote('down')}
             disabled={disabled || voting}
             title={voted === 'down' ? 'You marked not helpful' : 'Not helpful'}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 rounded-full min-h-[2.5rem] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none ${
-              voted === 'down'
-                ? 'bg-destructive/90 text-destructive-foreground cursor-default'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
+            className={voteBtnClass(false)}
             aria-label={voted === 'down' ? 'You marked not helpful' : 'Not helpful'}
           >
             <span className="text-[10px] font-semibold leading-none">↓</span>
           </button>
         </div>
-        {voting && <p className="text-xs text-muted-foreground">Saving…</p>}
-        <div className="flex flex-col items-center">
-          <span className="text-2xl font-bold tabular-nums text-foreground" aria-label="Vote count">{votes}</span>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">votes</span>
+        <span className="text-lg font-bold tabular-nums text-foreground shrink-0" aria-label="Vote count">{votes}</span>
+        {voting && <span className="text-xs text-muted-foreground shrink-0">Saving…</span>}
+        <div className="flex items-center gap-1 shrink-0">
+          <button type="button" title={isSaved ? 'Unsave' : 'Save'} onClick={handleSave} className={`p-2 rounded-lg ${isSaved ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-label={isSaved ? 'Unsave' : 'Save'}>
+            <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
+          </button>
+          <button type="button" title="Share" onClick={onShare} className="p-2 rounded-lg text-muted-foreground hover:bg-muted" aria-label="Share">
+            <Share2 className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
-      <div className="w-full h-px bg-border" />
-
-      <div className="flex flex-col gap-2 items-center w-full">
-        <button
-          type="button"
-          title={isSaved ? 'Unsave' : 'Save for later'}
-          onClick={handleSave}
-          className={`${btnBase} ${
-            isSaved
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-          }`}
-          aria-label={isSaved ? 'Unsave' : 'Save for later'}
-        >
-          <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
-        </button>
-        <button
-          type="button"
-          title="Share"
-          onClick={onShare}
-          className={`${btnBase} text-muted-foreground hover:bg-muted hover:text-foreground`}
-          aria-label="Share"
-        >
-          <Share2 className="w-5 h-5" />
-        </button>
+      {/* Desktop: vertical sidebar */}
+      <div className="hidden lg:flex sticky top-20 flex-col items-center gap-5 py-5 px-4 rounded-xl border border-border bg-card shadow-sm backdrop-blur-sm w-24 shrink-0">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Vote</p>
+        <div className="flex flex-col items-center gap-2 w-full">
+          <div className="flex gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => handleVote('up')}
+              disabled={disabled || voting}
+              title={voted === 'up' ? 'You marked helpful' : 'Helpful'}
+              className={voteBtnClass(true)}
+              aria-label={voted === 'up' ? 'You marked helpful' : 'Helpful'}
+            >
+              {voting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="text-[10px] font-semibold leading-none">↑</span>}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleVote('down')}
+              disabled={disabled || voting}
+              title={voted === 'down' ? 'You marked not helpful' : 'Not helpful'}
+              className={voteBtnClass(false)}
+              aria-label={voted === 'down' ? 'You marked not helpful' : 'Not helpful'}
+            >
+              <span className="text-[10px] font-semibold leading-none">↓</span>
+            </button>
+          </div>
+          {voting && <p className="text-xs text-muted-foreground">Saving…</p>}
+          <div className="flex flex-col items-center">
+            <span className="text-2xl font-bold tabular-nums text-foreground" aria-label="Vote count">{votes}</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">votes</span>
+          </div>
+        </div>
+        <div className="w-full h-px bg-border" />
+        <div className="flex flex-col gap-2 items-center w-full">
+          <button type="button" title={isSaved ? 'Unsave' : 'Save for later'} onClick={handleSave} className={`${btnBase} ${isSaved ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} aria-label={isSaved ? 'Unsave' : 'Save for later'}>
+            <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
+          </button>
+          <button type="button" title="Share" onClick={onShare} className={`${btnBase} text-muted-foreground hover:bg-muted hover:text-foreground`} aria-label="Share">
+            <Share2 className="w-5 h-5" />
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

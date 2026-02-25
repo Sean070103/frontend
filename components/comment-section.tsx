@@ -65,7 +65,7 @@ export function CommentSection({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full min-w-0">
       {/* Header with Sort */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-foreground">
@@ -84,7 +84,7 @@ export function CommentSection({
       </div>
 
       {/* New Comment Form */}
-      <div className="p-4 rounded-xl bg-muted/30 border border-border">
+      <div className="p-4 rounded-xl bg-muted/30 border border-border w-full min-w-0">
         <CommentForm
           onSubmit={handleCommentSubmit}
           placeholder="Share your insights and experiences..."

@@ -42,7 +42,7 @@ export default function Home() {
             const fallback =
               getMockThread(t.id) ?? MOCK_THREADS[index % MOCK_THREADS.length]
 
-            // Keep the real thread id and numeric stats, but use English text/avatar/category
+            // Use English mock text and mock counts (votes, replies, views, rating) so list looks consistent
             return {
               ...t,
               title: fallback.title,
@@ -50,6 +50,10 @@ export default function Home() {
               author: fallback.author,
               avatar: fallback.avatar,
               category: fallback.category,
+              votes: fallback.votes,
+              replies: fallback.replies,
+              views: fallback.views,
+              rating: fallback.rating,
             }
           }
           return t
@@ -57,13 +61,13 @@ export default function Home() {
       : MOCK_THREADS
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full max-w-[100vw] overflow-x-hidden">
       <Navbar
         title="Protocol Discussions"
         isDark={isDark}
         onToggleDarkMode={() => setTheme(isDark ? 'light' : 'dark')}
       />
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Healing & Recovery Discussions

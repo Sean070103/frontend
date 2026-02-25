@@ -129,9 +129,9 @@ export default function ProtocolDetailPage() {
 
   if (loading && !protocol) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background w-full max-w-[100vw] overflow-x-hidden">
         <Navbar title="Protocol Discussions" isDark={isDark} onToggleDarkMode={() => setTheme(isDark ? 'light' : 'dark')} />
-        <main className="max-w-4xl mx-auto px-4 py-8">
+        <main className="w-full max-w-4xl mx-auto px-4 py-8">
           <div className="h-8 w-48 bg-muted rounded animate-pulse mb-6" />
           <div className="h-40 bg-muted rounded animate-pulse" />
         </main>
@@ -141,9 +141,9 @@ export default function ProtocolDetailPage() {
 
   if (error || !protocol) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background w-full max-w-[100vw] overflow-x-hidden">
         <Navbar title="Protocol Discussions" isDark={isDark} onToggleDarkMode={() => setTheme(isDark ? 'light' : 'dark')} />
-        <main className="max-w-4xl mx-auto px-4 py-8">
+        <main className="w-full max-w-4xl mx-auto px-4 py-8">
           <p className="text-muted-foreground">{error || 'Protocol not found.'}</p>
           <Link href="/protocols" className="mt-4 inline-block text-primary hover:underline">Back to protocols</Link>
         </main>
@@ -158,13 +158,13 @@ export default function ProtocolDetailPage() {
   const avgRating = displayReviews.length ? displayReviews.reduce((sum, r) => sum + r.rating, 0) / displayReviews.length : card.rating
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full max-w-[100vw] overflow-x-hidden">
       <Navbar
         title="Protocol Discussions"
         isDark={isDark}
         onToggleDarkMode={() => setTheme(isDark ? 'light' : 'dark')}
       />
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <Link
           href="/protocols"
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"

@@ -30,14 +30,14 @@ export function CommentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex gap-3">
+    <form onSubmit={handleSubmit} className="space-y-3 w-full min-w-0">
+      <div className="flex gap-3 w-full min-w-0">
         <img
           src="https://api.dicebear.com/7.x/avataaars/svg?seed=you"
           alt="Your avatar"
           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
         />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}

@@ -20,7 +20,7 @@ import { toast } from '@/hooks/use-toast'
 import { apiThreadToThread, apiCommentToComment, buildCommentTree } from '@/lib/mappers'
 import type { Thread } from '@/components/thread-card'
 import type { Comment } from '@/components/collapsible-comment'
-import { getThread as getMockThread, getComments as getMockComments } from '@/lib/mock-data'
+import { getThread as getMockThread, getComments as getMockComments, MOCK_THREADS } from '@/lib/mock-data'
 import { looksLikeLatin } from '@/lib/latin'
 
 export default function ThreadPage() {
@@ -48,7 +48,10 @@ export default function ThreadPage() {
       if (t) {
         const uiThread = apiThreadToThread(t)
         const useEnglish = looksLikeLatin(uiThread.title) || looksLikeLatin(uiThread.excerpt)
-        const displayThread = useEnglish ? (getMockThread(threadId) ?? uiThread) : uiThread
+        const fallback = getMockThread(threadId) ?? MOCK_THREADS[Number(threadId) % MOCK_THREADS.length]
+        const displayThread = useEnglish
+          ? { ...fallback, id: uiThread.id, timestamp: uiThread.timestamp }
+          : uiThread
         setThread(displayThread)
         setVoteCount(displayThread.votes)
       } else {
@@ -71,8 +74,12 @@ export default function ThreadPage() {
       } catch {
         // ignore
       }
-      // Use API comments when we have any, so posted comments persist after refresh
-      setComments(fromApi.length > 0 ? fromApi : getMockComments(threadId))
+      const commentsHaveLatin = fromApi.some(
+        (c) => looksLikeLatin(c.content) || c.replies?.some((r) => looksLikeLatin(r.content))
+      )
+      // When thread is in English mock mode or comments are Latin, show English mock comments; else use API comments
+      const useMockComments = useEnglish || (fromApi.length > 0 && commentsHaveLatin)
+      setComments(useMockComments ? getMockComments(threadId) : (fromApi.length > 0 ? fromApi : getMockComments(threadId)))
     } catch (e) {
       const mock = getMockThread(threadId)
       if (mock) {
@@ -230,9 +237,9 @@ export default function ThreadPage() {
 
   if (loading && !thread) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background w-full max-w-[100vw] overflow-x-hidden">
         <Navbar title="Protocol Discussions" isDark={isDark} onToggleDarkMode={() => setTheme(isDark ? 'light' : 'dark')} />
-        <main className="max-w-4xl mx-auto px-4 py-8">
+        <main className="w-full max-w-4xl mx-auto px-4 py-8">
           <div className="h-8 w-48 bg-muted rounded animate-pulse mb-6" />
           <div className="h-40 bg-muted rounded animate-pulse" />
         </main>
@@ -242,9 +249,9 @@ export default function ThreadPage() {
 
   if (error || !thread) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background w-full max-w-[100vw] overflow-x-hidden">
         <Navbar title="Protocol Discussions" isDark={isDark} onToggleDarkMode={() => setTheme(isDark ? 'light' : 'dark')} />
-        <main className="max-w-4xl mx-auto px-4 py-8">
+        <main className="w-full max-w-4xl mx-auto px-4 py-8">
           <p className="text-muted-foreground">{error || 'Thread not found.'}</p>
           <button onClick={() => router.push('/')} className="mt-4 text-primary hover:underline">
             Back to discussions
@@ -258,21 +265,21 @@ export default function ThreadPage() {
     comments.length + comments.reduce((acc, c) => acc + (c.replies?.length ?? 0), 0)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full max-w-[100vw] overflow-x-hidden">
       <Navbar
         title="Protocol Discussions"
         isDark={isDark}
         onToggleDarkMode={() => setTheme(isDark ? 'light' : 'dark')}
       />
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 sm:mb-6"
         >
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="w-4 h-4 flex-shrink-0" /> Back
         </button>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           <VotingSidebar
             threadId={threadId}
             votes={voteCount}
@@ -281,7 +288,7 @@ export default function ThreadPage() {
             onShare={() => {}}
           />
 
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 w-full">
             <article className="rounded-lg bg-card border border-border p-6 mb-8">
               <div className="flex gap-3 mb-4">
                 <img
@@ -301,7 +308,7 @@ export default function ThreadPage() {
               <h1 className="text-2xl font-bold text-foreground mb-3">{thread.title}</h1>
               <p className="text-foreground leading-relaxed mb-4">{thread.excerpt}</p>
 
-              <div className="flex flex-wrap items-center gap-6 text-sm">
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm">
                 <StarRating rating={thread.rating} size="sm" />
                 <span className="flex items-center gap-2 text-muted-foreground" title="Comments">
                   <MessageSquare className="w-4 h-4 flex-shrink-0" />

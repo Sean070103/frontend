@@ -60,13 +60,13 @@ export default function ProtocolsPage() {
   }, [load, search])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full max-w-[100vw] overflow-x-hidden">
       <Navbar
         title="Protocol Discussions"
         isDark={isDark}
         onToggleDarkMode={() => setTheme(isDark ? 'light' : 'dark')}
       />
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <h1 className="text-2xl font-bold text-foreground mb-6">Protocols</h1>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
