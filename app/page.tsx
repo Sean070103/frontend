@@ -42,7 +42,7 @@ export default function Home() {
             const fallback =
               getMockThread(t.id) ?? MOCK_THREADS[index % MOCK_THREADS.length]
 
-            // Use English mock text and mock counts (votes, replies, views, rating) so list looks consistent
+            // Use English mock text/avatar/category, but keep API counts so votes/comments persist correctly
             return {
               ...t,
               title: fallback.title,
@@ -50,10 +50,6 @@ export default function Home() {
               author: fallback.author,
               avatar: fallback.avatar,
               category: fallback.category,
-              votes: fallback.votes,
-              replies: fallback.replies,
-              views: fallback.views,
-              rating: fallback.rating,
             }
           }
           return t

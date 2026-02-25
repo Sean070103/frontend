@@ -54,10 +54,6 @@ export default function ThreadsPage() {
                   author: fallback.author,
                   avatar: fallback.avatar,
                   category: fallback.category,
-                  votes: fallback.votes,
-                  replies: fallback.replies,
-                  views: fallback.views,
-                  rating: fallback.rating,
                 }
               }
               return t

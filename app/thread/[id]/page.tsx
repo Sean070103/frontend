@@ -45,25 +45,28 @@ export default function ThreadPage() {
         getThread(threadId).catch(() => null),
         listComments(threadId).catch(() => null),
       ])
+      let useEnglish = false
       if (t) {
         const uiThread = apiThreadToThread(t)
-        const useEnglish = looksLikeLatin(uiThread.title) || looksLikeLatin(uiThread.excerpt)
+        useEnglish = looksLikeLatin(uiThread.title) || looksLikeLatin(uiThread.excerpt)
         const fallback = getMockThread(threadId) ?? MOCK_THREADS[Number(threadId) % MOCK_THREADS.length]
         const displayThread = useEnglish
-          ? { ...fallback, id: uiThread.id, timestamp: uiThread.timestamp }
+          ? {
+              ...uiThread,
+              title: fallback.title,
+              excerpt: fallback.excerpt,
+              author: fallback.author,
+              avatar: fallback.avatar,
+              category: fallback.category,
+            }
           : uiThread
         setThread(displayThread)
-        setVoteCount(displayThread.votes)
+        setVoteCount(uiThread.votes ?? 0)
       } else {
-        const mock = getMockThread(threadId)
-        if (mock) {
-          setThread(mock)
-          setVoteCount(mock.votes)
-        } else {
-          setError('Thread not found')
-          setLoading(false)
-          return
-        }
+        // If backend has no such thread, fall back to an English mock thread
+        const fallback = getMockThread(threadId) ?? MOCK_THREADS[Number(threadId) % MOCK_THREADS.length]
+        setThread(fallback)
+        setVoteCount(fallback.votes)
       }
       let fromApi: Comment[] = []
       try {
@@ -72,14 +75,10 @@ export default function ThreadPage() {
         const tree = flat.length > 0 ? buildCommentTree(flat as import('@/lib/api-types').ApiComment[]) : []
         fromApi = tree.map(apiCommentToComment)
       } catch {
-        // ignore
+        // ignore – fall back to mocks if nothing from API
       }
-      const commentsHaveLatin = fromApi.some(
-        (c) => looksLikeLatin(c.content) || c.replies?.some((r) => looksLikeLatin(r.content))
-      )
-      // When thread is in English mock mode or comments are Latin, show English mock comments; else use API comments
-      const useMockComments = useEnglish || (fromApi.length > 0 && commentsHaveLatin)
-      setComments(useMockComments ? getMockComments(threadId) : (fromApi.length > 0 ? fromApi : getMockComments(threadId)))
+      // Always prefer real API comments when any exist so new comments persist after refresh.
+      setComments(fromApi.length > 0 ? fromApi : getMockComments(threadId))
     } catch (e) {
       const mock = getMockThread(threadId)
       if (mock) {
